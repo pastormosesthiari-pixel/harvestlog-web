@@ -3,22 +3,22 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 
-type Role = "admin" | "evangelist" | null;
-
 export default function NavBar() {
+  const [role, setRole] = useState<"admin" | "evangelist" | null>(null);
   const [loggedIn, setLoggedIn] = useState(false);
-  const [role, setRole] = useState<Role>(null);
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase.auth.getSession();
-      const user = data.session?.user;
-      setLoggedIn(!!user);
+      const { data: sess } = await supabase.auth.getSession();
+      const user = sess.session?.user;
 
       if (!user) {
+        setLoggedIn(false);
         setRole(null);
         return;
       }
+
+      setLoggedIn(true);
 
       const { data: prof, error } = await supabase
         .from("profiles")
@@ -31,7 +31,7 @@ export default function NavBar() {
         return;
       }
 
-      setRole(prof?.role ?? null);
+      setRole((prof?.role as "admin" | "evangelist") ?? null);
     };
 
     load();
@@ -62,12 +62,28 @@ export default function NavBar() {
         </a>
 
         {role === "admin" && (
-          <a
-            href="/admin"
-            className="text-sm font-medium text-gray-700 hover:text-gray-900"
-          >
-            Admin
-          </a>
+          <>
+            <a
+              href="/admin"
+              className="text-sm font-medium text-gray-700 hover:text-gray-900"
+            >
+              Admin
+            </a>
+
+            <a
+              href="/admin/reports"
+              className="text-sm font-medium text-gray-700 hover:text-gray-900"
+            >
+              Reports
+            </a>
+
+            <a
+              href="/admin/leaderboard"
+              className="text-sm font-medium text-gray-700 hover:text-gray-900"
+            >
+              Leaderboard
+            </a>
+          </>
         )}
 
         <div className="ml-auto flex items-center gap-3">
@@ -87,12 +103,12 @@ export default function NavBar() {
               </a>
             </>
           ) : (
-            <a
-  href="/logout"
-  className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-gray-50"
->
-  Logout
-</a>
+            <button
+              onClick={logout}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-gray-50"
+            >
+              Logout
+            </button>
           )}
         </div>
       </nav>
