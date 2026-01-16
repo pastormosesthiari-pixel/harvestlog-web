@@ -2,143 +2,119 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import { isAdminUser } from "../../lib/isAdmin";
 
-type ProfileRow = {
+type Evangelist = {
   id: string;
   full_name: string;
-  phone: string | null;
-  role: "admin" | "evangelist";
+  email: string;
   approved: boolean;
 };
 
 export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState<string | null>(null);
-  const [rows, setRows] = useState<ProfileRow[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [evangelists, setEvangelists] = useState<Evangelist[]>([]);
 
   const load = async () => {
-    setMsg(null);
     setLoading(true);
+    setMsg(null);
 
     const { data: sess } = await supabase.auth.getSession();
     const user = sess.session?.user;
 
     if (!user) {
+      setMsg("❌ Not logged in");
       setLoading(false);
-      setMsg("❌ Not logged in. Go to /login");
       return;
     }
 
-    const { data: myProfile, error: myErr } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (myErr) {
-      setLoading(false);
-      setMsg("❌ Could not load profile: " + myErr.message);
-      return;
-    }
-
-    if (myProfile?.role !== "admin") {
-      setLoading(false);
+    const admin = await isAdminUser(user.id);
+    if (!admin) {
       setMsg("❌ Access denied. Admins only.");
+      setLoading(false);
       return;
     }
+
+    setIsAdmin(true);
 
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, full_name, phone, role, approved")
+      .select("id, full_name, email, approved")
       .eq("role", "evangelist")
-      .order("full_name", { ascending: true });
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      setMsg("❌ Could not load evangelists: " + error.message);
+    } else {
+      setEvangelists(data ?? []);
+    }
 
     setLoading(false);
-
-    if (error) setMsg("❌ Error loading evangelists: " + error.message);
-    else setRows((data as ProfileRow[]) ?? []);
   };
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const approve = async (id: string) => {
-    setMsg(null);
     const { error } = await supabase
       .from("profiles")
       .update({ approved: true })
       .eq("id", id);
 
-    if (error) setMsg("❌ Approve failed: " + error.message);
-    else {
-      setMsg("✅ Approved.");
+    if (error) {
+      alert(error.message);
+    } else {
       load();
     }
   };
 
+  if (loading) return <p className="p-6">Loading...</p>;
+
+  if (!isAdmin) return <p className="p-6">{msg}</p>;
+
   return (
-    <main className="mt-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold tracking-tight">Admin Approval</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Approve evangelists before they can submit records.
-        </p>
+    <main className="p-6 space-y-6">
+      <h1 className="text-2xl font-bold">Evangelist Approval</h1>
 
-        <p className="mt-2 text-sm">
-          📊 Reports:{" "}
-          <a
-            href="/admin/reports"
-            className="font-semibold underline text-gray-900"
-          >
-            /admin/reports
-          </a>
-        </p>
-      </div>
+      {msg && <p className="text-red-600">{msg}</p>}
 
-      {msg && (
-        <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm">
-          {msg}
-        </div>
-      )}
-
-      {loading ? (
-        <p className="text-sm text-gray-600">Loading...</p>
-      ) : rows.length === 0 ? (
-        <p className="text-sm text-gray-600">No evangelists found.</p>
+      {evangelists.length === 0 ? (
+        <p>No evangelists found.</p>
       ) : (
-        <div className="overflow-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b text-left text-gray-500">
-                <th className="px-4 py-3">Name</th>
-                <th>Phone</th>
-                <th>Status</th>
-                <th className="pr-4">Action</th>
+        <table className="w-full border text-sm">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="p-2 text-left">Name</th>
+              <th className="p-2">Email</th>
+              <th className="p-2">Status</th>
+              <th className="p-2">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {evangelists.map((e) => (
+              <tr key={e.id} className="border-t">
+                <td className="p-2">{e.full_name}</td>
+                <td className="p-2">{e.email}</td>
+                <td className="p-2">
+                  {e.approved ? "Approved" : "Pending"}
+                </td>
+                <td className="p-2">
+                  {!e.approved && (
+                    <button
+                      onClick={() => approve(e.id)}
+                      className="rounded bg-green-600 px-3 py-1 text-white"
+                    >
+                      Approve
+                    </button>
+                  )}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} className="border-b last:border-0">
-                  <td className="px-4 py-3 font-medium">{r.full_name}</td>
-                  <td>{r.phone ?? "-"}</td>
-                  <td>{r.approved ? "Approved" : "Pending"}</td>
-                  <td className="pr-4">
-                    {!r.approved && (
-                      <button
-                        onClick={() => approve(r.id)}
-                        className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-gray-800"
-                      >
-                        Approve
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       )}
     </main>
   );
