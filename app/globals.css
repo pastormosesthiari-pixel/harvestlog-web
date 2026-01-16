@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-gray-50 text-gray-900 antialiased;
+}
+
+/* Optional: nicer link + selection feel */
+a {
+  @apply text-gray-900;
+}
+
+::selection {
+  @apply bg-gray-900 text-white;
+}
