@@ -4,9 +4,19 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { isAdminUser } from "../../lib/isAdmin";
 
+type Membership = {
+  role: "super_admin" | "pastor_admin" | "branch_admin" | "evangelist";
+  status: "active" | "pending" | "disabled";
+};
+
 export default function NavBar() {
   const [loggedIn, setLoggedIn] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+
+  // platform admin (admins table)
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
+
+  // church admins (memberships)
+  const [isPastorOrSuper, setIsPastorOrSuper] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -15,13 +25,35 @@ export default function NavBar() {
 
       if (!user) {
         setLoggedIn(false);
-        setIsAdmin(false);
+        setIsPlatformAdmin(false);
+        setIsPastorOrSuper(false);
         return;
       }
 
       setLoggedIn(true);
-      const admin = await isAdminUser(user.id);
-      setIsAdmin(admin);
+
+      // Platform Admin?
+      const platformAdmin = await isAdminUser(user.id);
+      setIsPlatformAdmin(platformAdmin);
+
+      // Pastor Admin / Super Admin?
+      const { data: mems, error } = await supabase
+        .from("memberships")
+        .select("role, status")
+        .eq("user_id", user.id);
+
+      if (error) {
+        setIsPastorOrSuper(false);
+        return;
+      }
+
+      const rows = (mems as Membership[]) ?? [];
+      const ok = rows.some(
+        (m) =>
+          m.status === "active" &&
+          (m.role === "pastor_admin" || m.role === "super_admin")
+      );
+      setIsPastorOrSuper(ok);
     };
 
     load();
@@ -45,18 +77,46 @@ export default function NavBar() {
           HarvestLog
         </a>
 
-        {/* Common */}
+        {/* Logged-in links */}
         {loggedIn && (
-          <a
-            href="/dashboard"
-            className="text-sm font-medium text-gray-700 hover:text-gray-900"
-          >
-            Dashboard
-          </a>
+          <>
+            <a
+              href="/dashboard"
+              className="text-sm font-medium text-gray-700 hover:text-gray-900"
+            >
+              Dashboard
+            </a>
+
+            <a
+              href="/onboarding"
+              className="text-sm font-medium text-gray-700 hover:text-gray-900"
+            >
+              Join Church
+            </a>
+          </>
         )}
 
-        {/* Admin Links */}
-        {loggedIn && isAdmin && (
+        {/* Pastor Admin links */}
+        {loggedIn && isPastorOrSuper && (
+          <>
+            <a
+              href="/pastor"
+              className="text-sm font-medium text-gray-700 hover:text-gray-900"
+            >
+              Pastor Admin
+            </a>
+
+            <a
+              href="/pastor/requests"
+              className="text-sm font-medium text-gray-700 hover:text-gray-900"
+            >
+              Requests
+            </a>
+          </>
+        )}
+
+        {/* Platform Admin links */}
+        {loggedIn && isPlatformAdmin && (
           <>
             <a
               href="/admin"
