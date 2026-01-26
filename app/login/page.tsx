@@ -15,118 +15,68 @@ export default function LoginPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-
     setMsg(null);
     setLoading(true);
 
-    // Hard timeout to prevent infinite "Logging in..."
-    const timeoutMs = 15000;
-
     try {
-      const loginPromise = supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(
-          () => reject(new Error("Login timed out. Check network / Supabase settings.")),
-          timeoutMs
-        )
-      );
-
-      const { data, error } = await Promise.race([loginPromise, timeoutPromise]);
-
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
 
-      if (!data?.session) {
-        throw new Error("Login returned no session. Check Supabase Auth settings.");
-      }
+      // Confirm session exists
+      if (!data.session?.access_token) throw new Error("No session token returned.");
 
-      // IMPORTANT: Do NOT fetch profile/membership here.
-      // Just go to dashboard. Dashboard can load data separately.
-      router.replace("/dashboard");
+      router.push("/dashboard");
     } catch (err: any) {
       setMsg(err?.message ?? "Login failed");
-      setLoading(false);
-      return;
     } finally {
-      // Ensure loading always stops
       setLoading(false);
     }
   }
 
   return (
-    <div style={{ maxWidth: 480, margin: "60px auto", padding: 24 }}>
-      <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8 }}>Login</h1>
-      <p style={{ marginBottom: 20 }}>Sign in to HarvestLog.</p>
+    <div style={{ maxWidth: 520, margin: "60px auto", padding: 24 }}>
+      <h1 style={{ fontSize: 32, fontWeight: 700 }}>Login</h1>
+      <p>Sign in to HarvestLog.</p>
 
       {msg && (
-        <div
-          style={{
-            padding: 12,
-            border: "1px solid #f5c2c7",
-            background: "#fff3cd",
-            borderRadius: 8,
-            marginBottom: 16,
-          }}
-        >
+        <div style={{ marginTop: 16, padding: 12, borderRadius: 8, background: "#FEF3C7" }}>
           ❌ {msg}
         </div>
       )}
 
-      <form onSubmit={onSubmit}>
-        <label style={{ display: "block", marginBottom: 8 }}>Email</label>
+      <form onSubmit={onSubmit} style={{ marginTop: 20 }}>
+        <label style={{ display: "block", marginBottom: 6 }}>Email</label>
         <input
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           type="email"
-          placeholder="you@example.com"
-          style={{
-            width: "100%",
-            padding: 12,
-            borderRadius: 8,
-            border: "1px solid #ddd",
-            marginBottom: 16,
-          }}
+          required
+          style={{ width: "100%", padding: 10, marginBottom: 16 }}
         />
 
-        <label style={{ display: "block", marginBottom: 8 }}>Password</label>
+        <label style={{ display: "block", marginBottom: 6 }}>Password</label>
         <input
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           type="password"
-          placeholder="••••••••••"
-          style={{
-            width: "100%",
-            padding: 12,
-            borderRadius: 8,
-            border: "1px solid #ddd",
-            marginBottom: 16,
-          }}
+          required
+          style={{ width: "100%", padding: 10, marginBottom: 16 }}
         />
 
         <button
           disabled={loading}
-          type="submit"
           style={{
             width: "100%",
             padding: 12,
             borderRadius: 10,
-            border: "none",
-            background: "#0b1220",
+            background: "#0F172A",
             color: "white",
             fontWeight: 700,
-            cursor: loading ? "not-allowed" : "pointer",
           }}
         >
           {loading ? "Logging in..." : "Login"}
         </button>
       </form>
-
-      <div style={{ marginTop: 14 }}>
-        No account? Go to <a href="/register">/register</a>
-      </div>
     </div>
   );
 }
