@@ -4,109 +4,95 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
-type DashboardData = {
-  user: { id: string; email: string | null };
-  membership: any;
-  souls: any[];
-};
-
 export default function DashboardPage() {
   const router = useRouter();
-
+  const [email, setEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
 
-  async function load() {
+  async function loadSession() {
     setLoading(true);
-    setError(null);
+    setMsg(null);
 
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
 
-      if (!token) {
-        router.push("/login");
+      const user = data.session?.user;
+      if (!user) {
+        router.replace("/login");
         return;
       }
 
-      const res = await fetch("/api/dashboard", {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const json = await res.json();
-      if (!res.ok) throw new Error(json?.error ?? "Failed to load dashboard");
-
-      setData(json);
+      setEmail(user.email ?? null);
     } catch (e: any) {
-      setError(e?.message ?? "Timed out while loading dashboard.");
+      setMsg(e?.message ?? "Failed to load session.");
     } finally {
       setLoading(false);
     }
   }
 
   async function logout() {
-    await supabase.auth.signOut();
-    router.push("/login");
+    setMsg(null);
+    try {
+      await supabase.auth.signOut();
+
+      // Force-clear browser state (prevents “dashboard appears once then breaks”)
+      localStorage.clear();
+      sessionStorage.clear();
+
+      router.replace("/login");
+    } catch (e: any) {
+      setMsg(e?.message ?? "Logout failed");
+    }
   }
 
   useEffect(() => {
-    load();
+    loadSession();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <div style={{ maxWidth: 960, margin: "40px auto", padding: 24 }}>
+    <main style={{ maxWidth: 700, margin: "40px auto", padding: 20 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <h1 style={{ fontSize: 34, fontWeight: 800 }}>Dashboard</h1>
-          <div style={{ opacity: 0.7 }}>Status: Check message below</div>
-        </div>
-
-        <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={load} style={{ padding: "10px 14px", borderRadius: 10 }}>
-            Refresh
-          </button>
-          <button onClick={logout} style={{ padding: "10px 14px", borderRadius: 10 }}>
-            Logout
-          </button>
-        </div>
+        <h1 style={{ fontSize: 30, fontWeight: 900 }}>Dashboard</h1>
+        <button
+          onClick={logout}
+          style={{
+            padding: "10px 14px",
+            borderRadius: 10,
+            border: "1px solid #ddd",
+            background: "white",
+            cursor: "pointer",
+            fontWeight: 700,
+          }}
+        >
+          Logout
+        </button>
       </div>
 
       {loading && (
-        <div style={{ marginTop: 20, padding: 12, borderRadius: 8, background: "#EFF6FF" }}>
-          Loading dashboard...
+        <div style={{ marginTop: 16, padding: 12, borderRadius: 8, background: "#EFF6FF" }}>
+          Loading session...
         </div>
       )}
 
-      {error && (
-        <div style={{ marginTop: 20, padding: 12, borderRadius: 8, background: "#FEF3C7" }}>
-          ❌ {error}
+      {msg && (
+        <div style={{ marginTop: 16, padding: 12, borderRadius: 8, background: "#FEF3C7" }}>
+          ❌ {msg}
         </div>
       )}
 
-      {!loading && !error && data && (
-        <div style={{ marginTop: 20 }}>
-          <div style={{ padding: 16, borderRadius: 12, border: "1px solid #e5e7eb" }}>
-            <div><b>User:</b> {data.user.email}</div>
-            <div><b>Role:</b> {data.membership?.role}</div>
-            <div><b>Church:</b> {data.membership?.church_id}</div>
-            <div><b>Branch:</b> {data.membership?.branch_id}</div>
-            <div style={{ marginTop: 10 }}><b>Souls loaded:</b> {data.souls?.length ?? 0}</div>
-          </div>
-
-          <div style={{ marginTop: 20, padding: 16, borderRadius: 12, border: "1px solid #e5e7eb" }}>
-            <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 10 }}>Recent Souls</h2>
-            {(data.souls ?? []).slice(0, 10).map((s: any) => (
-              <div key={s.id} style={{ padding: "10px 0", borderBottom: "1px solid #f1f5f9" }}>
-                <div style={{ fontWeight: 700 }}>{s.name ?? "Unknown"}</div>
-                <div style={{ opacity: 0.7, fontSize: 13 }}>{s.created_at}</div>
-              </div>
-            ))}
-          </div>
+      {!loading && !msg && (
+        <div style={{ marginTop: 20, padding: 16, borderRadius: 12, border: "1px solid #e5e7eb" }}>
+          <p style={{ fontSize: 16 }}>
+            ✅ You are logged in as: <b>{email ?? "Unknown"}</b>
+          </p>
+          <p style={{ marginTop: 8, opacity: 0.7 }}>
+            This is the “stable base”. Next we re-add souls, roles, and approvals carefully.
+          </p>
         </div>
       )}
-    </div>
+    </main>
   );
 }

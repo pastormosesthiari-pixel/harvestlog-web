@@ -6,10 +6,8 @@ import { supabase } from "@/lib/supabaseClient";
 
 export default function LoginPage() {
   const router = useRouter();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -19,13 +17,16 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
       if (error) throw error;
 
-      // Confirm session exists
-      if (!data.session?.access_token) throw new Error("No session token returned.");
+      if (!data.session) throw new Error("No session returned.");
 
-      router.push("/dashboard");
+      router.replace("/dashboard");
     } catch (err: any) {
       setMsg(err?.message ?? "Login failed");
     } finally {
@@ -34,49 +35,49 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ maxWidth: 520, margin: "60px auto", padding: 24 }}>
-      <h1 style={{ fontSize: 32, fontWeight: 700 }}>Login</h1>
-      <p>Sign in to HarvestLog.</p>
+    <main style={{ maxWidth: 420, margin: "60px auto", padding: 20 }}>
+      <h1 style={{ fontSize: 28, fontWeight: 800 }}>HarvestLog Login</h1>
 
       {msg && (
-        <div style={{ marginTop: 16, padding: 12, borderRadius: 8, background: "#FEF3C7" }}>
+        <div style={{ marginTop: 12, padding: 12, background: "#FEF3C7", borderRadius: 8 }}>
           ❌ {msg}
         </div>
       )}
 
-      <form onSubmit={onSubmit} style={{ marginTop: 20 }}>
-        <label style={{ display: "block", marginBottom: 6 }}>Email</label>
+      <form onSubmit={onSubmit} style={{ marginTop: 16, display: "grid", gap: 12 }}>
         <input
+          type="email"
+          placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          type="email"
           required
-          style={{ width: "100%", padding: 10, marginBottom: 16 }}
+          style={{ padding: 12, borderRadius: 10, border: "1px solid #ddd" }}
         />
-
-        <label style={{ display: "block", marginBottom: 6 }}>Password</label>
         <input
+          type="password"
+          placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          type="password"
           required
-          style={{ width: "100%", padding: 10, marginBottom: 16 }}
+          style={{ padding: 12, borderRadius: 10, border: "1px solid #ddd" }}
         />
 
         <button
+          type="submit"
           disabled={loading}
           style={{
-            width: "100%",
             padding: 12,
             borderRadius: 10,
             background: "#0F172A",
             color: "white",
-            fontWeight: 700,
+            fontWeight: 800,
+            border: "none",
+            cursor: loading ? "not-allowed" : "pointer",
           }}
         >
           {loading ? "Logging in..." : "Login"}
         </button>
       </form>
-    </div>
+    </main>
   );
 }
