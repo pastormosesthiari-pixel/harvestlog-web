@@ -1,90 +1,132 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { supabase } from "../../lib/supabaseClient";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function LoginPage() {
+  const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const onSubmit = async (e: FormEvent) => {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+
     setMsg(null);
     setLoading(true);
 
+    // Hard timeout to prevent infinite "Logging in..."
+    const timeoutMs = 15000;
+
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
+      const loginPromise = supabase.auth.signInWithPassword({
+        email: email.trim(),
         password,
       });
 
-      if (error) {
-        setMsg("❌ Login failed: " + error.message);
-        return;
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Login timed out. Check network / Supabase settings.")),
+          timeoutMs
+        )
+      );
+
+      const { data, error } = await Promise.race([loginPromise, timeoutPromise]);
+
+      if (error) throw error;
+
+      if (!data?.session) {
+        throw new Error("Login returned no session. Check Supabase Auth settings.");
       }
 
-      // Ensure session is available before redirect
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        setMsg("❌ Login completed but session not found. Refresh and try again.");
-        return;
-      }
-
-      window.location.href = "/dashboard";
+      // IMPORTANT: Do NOT fetch profile/membership here.
+      // Just go to dashboard. Dashboard can load data separately.
+      router.replace("/dashboard");
     } catch (err: any) {
-      setMsg("❌ Login failed: " + (err?.message ?? String(err)));
+      setMsg(err?.message ?? "Login failed");
+      setLoading(false);
+      return;
     } finally {
+      // Ensure loading always stops
       setLoading(false);
     }
-  };
+  }
 
   return (
-    <main className="mx-auto mt-10 max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-      <h1 className="text-2xl font-extrabold tracking-tight">Login</h1>
-      <p className="mt-1 text-sm text-gray-600">Sign in to HarvestLog.</p>
+    <div style={{ maxWidth: 480, margin: "60px auto", padding: 24 }}>
+      <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8 }}>Login</h1>
+      <p style={{ marginBottom: 20 }}>Sign in to HarvestLog.</p>
 
       {msg && (
-        <div className="mt-4 rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm">
-          {msg}
+        <div
+          style={{
+            padding: 12,
+            border: "1px solid #f5c2c7",
+            background: "#fff3cd",
+            borderRadius: 8,
+            marginBottom: 16,
+          }}
+        >
+          ❌ {msg}
         </div>
       )}
 
-      <form onSubmit={onSubmit} className="mt-6 grid gap-4">
-        <div className="grid gap-2">
-          <label className="text-sm font-semibold">Email</label>
-          <input
-            className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:ring-2 focus:ring-gray-300"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            type="email"
-            required
-          />
-        </div>
+      <form onSubmit={onSubmit}>
+        <label style={{ display: "block", marginBottom: 8 }}>Email</label>
+        <input
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          type="email"
+          placeholder="you@example.com"
+          style={{
+            width: "100%",
+            padding: 12,
+            borderRadius: 8,
+            border: "1px solid #ddd",
+            marginBottom: 16,
+          }}
+        />
 
-        <div className="grid gap-2">
-          <label className="text-sm font-semibold">Password</label>
-          <input
-            className="rounded-lg border border-gray-200 px-3 py-2 outline-none focus:ring-2 focus:ring-gray-300"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            type="password"
-            required
-          />
-        </div>
+        <label style={{ display: "block", marginBottom: 8 }}>Password</label>
+        <input
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          type="password"
+          placeholder="••••••••••"
+          style={{
+            width: "100%",
+            padding: 12,
+            borderRadius: 8,
+            border: "1px solid #ddd",
+            marginBottom: 16,
+          }}
+        />
 
         <button
           disabled={loading}
-          className="rounded-lg bg-gray-900 px-4 py-2 font-semibold text-white hover:bg-gray-800 disabled:opacity-60"
+          type="submit"
+          style={{
+            width: "100%",
+            padding: 12,
+            borderRadius: 10,
+            border: "none",
+            background: "#0b1220",
+            color: "white",
+            fontWeight: 700,
+            cursor: loading ? "not-allowed" : "pointer",
+          }}
         >
           {loading ? "Logging in..." : "Login"}
         </button>
-
-        <p className="text-sm text-gray-600">
-          No account? Go to <a className="underline" href="/register">/register</a>
-        </p>
       </form>
-    </main>
+
+      <div style={{ marginTop: 14 }}>
+        No account? Go to <a href="/register">/register</a>
+      </div>
+    </div>
   );
 }
