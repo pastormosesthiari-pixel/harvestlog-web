@@ -1,23 +1,133 @@
-@import "tailwindcss";
-
-:root {
-  color-scheme: light;
+:root{
+  --navy:#0F172A;
+  --gold:#D4AF37;
+  --bg:#F8FAFC;
+  --card:#FFFFFF;
+  --text:#0B1220;
+  --muted:#64748B;
+  --line:#E2E8F0;
+  --shadow: 0 10px 30px rgba(2,6,23,.08);
+  --radius: 18px;
 }
 
-html,
-body {
-  height: 100%;
+*{ box-sizing:border-box; }
+html,body{ padding:0; margin:0; background:var(--bg); color:var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+a{ color:inherit; text-decoration:none; }
+button{ font-family:inherit; }
+
+.hl-container{ display:flex; min-height:100vh; }
+
+.hl-sidebar{
+  width:280px;
+  background:var(--navy);
+  color:#E2E8F0;
+  padding:20px 16px;
+  position:sticky;
+  top:0;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
 }
 
-body {
-  @apply bg-gray-50 text-gray-900 antialiased;
+.hl-brand{ display:flex; align-items:center; gap:12px; padding:10px 10px 18px 10px; }
+.hl-brandMark{
+  width:38px; height:38px; border-radius:12px;
+  background: rgba(212,175,55,.18);
+  border:1px solid rgba(212,175,55,.35);
+  display:grid; place-items:center;
+  color: var(--gold);
+  font-weight:900;
+}
+.hl-brandTitle{ font-weight:800; letter-spacing:.2px; font-size:18px; line-height:1.1; }
+.hl-brandSub{ font-size:12px; color: rgba(226,232,240,.75); }
+
+.hl-nav{ display:flex; flex-direction:column; gap:6px; padding:6px; }
+.hl-navItem{
+  display:flex; align-items:center; gap:10px;
+  padding:12px 12px; border-radius:14px;
+  color: rgba(226,232,240,.85);
+  transition: all .15s ease;
+}
+.hl-navItem:hover{ background: rgba(148,163,184,.12); }
+.hl-navItemActive{ background: rgba(212,175,55,.95); color:#0B1220; }
+
+.hl-main{ flex:1; padding:28px 28px 60px 28px; }
+.hl-topbar{ display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-bottom:18px; }
+
+.hl-btn{
+  display:inline-flex; align-items:center; gap:10px;
+  padding:10px 14px; border-radius:14px;
+  border:1px solid var(--line); background:white; cursor:pointer;
+  box-shadow: 0 2px 10px rgba(2,6,23,.04);
+}
+.hl-btnPrimary{ background: var(--gold); border-color: rgba(212,175,55,.6); }
+
+.hl-hero{
+  border-radius: 22px;
+  background:
+    linear-gradient(0deg, rgba(15,23,42,.60), rgba(15,23,42,.60)),
+    radial-gradient(1000px 500px at 30% 10%, rgba(212,175,55,.45), transparent 70%),
+    url("https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1600&q=60");
+  background-size: cover;
+  background-position: center;
+  padding: 28px 28px;
+  color: #F8FAFC;
+  box-shadow: var(--shadow);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
 }
 
-/* Optional: nicer link + selection feel */
-a {
-  @apply text-gray-900;
+.hl-h1{
+  font-family: ui-serif, Georgia, "Times New Roman", Times, serif;
+  font-size: 40px;
+  line-height: 1.05;
+  margin:0 0 8px 0;
+  letter-spacing:.3px;
+}
+.hl-heroText{ color: rgba(248,250,252,.85); margin:0; max-width: 520px; }
+
+.hl-grid{
+  margin-top:18px;
+  display:grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap:16px;
 }
 
-::selection {
-  @apply bg-gray-900 text-white;
+.hl-card{
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 24px rgba(2,6,23,.06);
+  padding: 16px;
+}
+
+.hl-stat{ display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.hl-statTitle{ font-size:12px; letter-spacing:.14em; color: var(--muted); }
+.hl-statValue{ font-size:34px; font-weight:900; margin-top:6px; }
+
+.hl-badgeIcon{
+  width:44px; height:44px;
+  border-radius: 14px;
+  display:grid; place-items:center;
+  border:1px solid rgba(2,6,23,.06);
+  font-weight:900;
+}
+.hl-iconGold{ background: rgba(212,175,55,.20); color: var(--gold); }
+.hl-iconGreen{ background: rgba(34,197,94,.18); color: rgb(34,197,94); }
+.hl-iconBlue{ background: rgba(59,130,246,.18); color: rgb(59,130,246); }
+.hl-iconOrange{ background: rgba(249,115,22,.18); color: rgb(249,115,22); }
+
+.hl-sectionTitle{
+  font-family: ui-serif, Georgia, "Times New Roman", Times, serif;
+  font-size:18px;
+  margin:0 0 10px 0;
+}
+
+@media (max-width: 980px){
+  .hl-sidebar{ display:none; }
+  .hl-main{ padding:18px; }
+  .hl-hero{ flex-direction:column; align-items:flex-start; }
+  .hl-h1{ font-size:32px; }
 }

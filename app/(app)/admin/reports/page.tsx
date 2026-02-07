@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../../../lib/supabaseClient";
-import { isAdminUser } from "../../../lib/isAdmin";
+import { supabase } from "../../../../lib/supabaseClient";
+import { isAdminUser } from "../../../../lib/isAdmin";
 
 export default function AdminReportsPage() {
   const [loading, setLoading] = useState(true);

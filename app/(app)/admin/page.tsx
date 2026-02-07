@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabaseClient";
-import { isAdminUser } from "../../lib/isAdmin";
+import { supabase } from "../../../lib/supabaseClient";
+import { isAdminUser } from "../../../lib/isAdmin";
 
 type Evangelist = {
   id: string;
